@@ -195,7 +195,7 @@
             overflow-y: auto;
             background: linear-gradient(135deg, rgba(255, 248, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
             border-radius: 30px;
-            padding: 35px 30px 60px 30px;
+            padding: 35px 30px 40px 30px;
             box-shadow: 0 20px 50px rgba(255, 159, 243, 0.3), 0 0 30px rgba(255, 255, 255, 0.6);
             border: 5px dashed #ffb8b8;
             text-align: center;
@@ -222,7 +222,6 @@
         }
 
         .jump-char.animate {
-            /* 把原本的 0.6s 改為 0.8s 讓每個字彈跳的過程稍微放慢，看起來更舒服 */
             animation: charJellyBounce 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
@@ -259,23 +258,35 @@
             letter-spacing: 0.5px;
         }
 
-        /* 隱藏/小小的了解按鈕 */
+        /* 置底了解按鈕 - 修改為預設隱藏並置中 */
         .understand-btn {
-            position: absolute;
-            right: 20px;
-            bottom: 20px;
+            display: inline-block;
+            margin-top: 30px; /* 與上方文字拉開距離 */
             background-color: #7bed9f;
             color: #2f3542;
             border: none;
-            padding: 6px 16px;
+            padding: 8px 24px;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 900;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
             cursor: pointer;
-            z-index: 20;
             outline: none;
+            
+            /* 預設為隱藏狀態 */
+            opacity: 0;
+            pointer-events: none; /* 隱藏時不可點擊 */
+            transform: translateY(10px);
+            
+            /* 設定動畫過渡 */
+            transition: opacity 0.8s ease, transform 0.8s ease, background-color 0.2s ease;
+        }
+
+        /* 當被加上 show-btn class 時才會浮現並可以點擊 */
+        .understand-btn.show-btn {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto; 
         }
 
         .understand-btn:active {
@@ -336,9 +347,13 @@
             一起看恐怖片 是個很有趣的體驗ㄝ<br>
             <small class="whisper-text">其實我很喜歡跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
             即使畢業之後<br>
-            希望可以像直線的光一樣不會終斷我們的connection
+            希望可以像直線的光一樣不會終斷我們的connection😘<br>
+            想問ㄋㄅㄋ跟ㄋ...<br>
+            在<br>
+            一<br>
+            起
         </div>
-        <button class="understand-btn" id="understand-btn">了解</button>
+        <button class="understand-btn" id="understand-btn">可以</button>
     </div>
 
     <script>
@@ -450,11 +465,21 @@
 
         function startJumpAnimation() {
             const allChars = document.querySelectorAll('.jump-char');
+            let totalAnimationTime = 0;
+
             allChars.forEach((char, index) => {
+                const delay = index * 60;
                 setTimeout(() => {
                     char.classList.add('animate');
-                }, index * 60); // 把這裡的數字從 30 改為 60，字體出現的速度就會變慢了！
+                }, delay);
+                // 記錄最後一個字開始動畫的時間
+                totalAnimationTime = delay; 
             });
+
+            // 等待最後一個字的動畫播完 (加上動畫本身的 800ms 時間)，再顯示「了解」按鈕
+            setTimeout(() => {
+                understandBtn.classList.add('show-btn');
+            }, totalAnimationTime + 800);
         }
 
         // 初始化包裹文字
