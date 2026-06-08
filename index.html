@@ -222,7 +222,8 @@
         }
 
         .jump-char.animate {
-            animation: charJellyBounce 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            /* 把原本的 0.6s 改為 0.8s 讓每個字彈跳的過程稍微放慢，看起來更舒服 */
+            animation: charJellyBounce 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
         @keyframes charJellyBounce {
@@ -290,7 +291,7 @@
         點擊畫面任意處<br>開啟相機並允許麥克風權限
     </div>
 
-    <video id="camera-preview" autoplay playsinline></video>
+    <video id="camera-preview" autoplay playsinline muted></video>
     <div id="flash"></div>
 
     <div id="bottom-bar">
@@ -329,7 +330,11 @@
             下面可能才是新的<br>
             雖然妳總是有點調皮<br>
             但能在妳旁邊的時光 我過得很開心<br>
-            <small class="whisper-text">其實我很享受跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
+            還記的前幾天我們一起去看恐怖片<br>
+            隨然不是刻意變成我跟你單獨一起看<br>
+            不過第一次跟異性坐那麼近<br>
+            一起看恐怖片 是個很有趣的體驗ㄝ<br>
+            <small class="whisper-text">其實我很喜歡跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
             即使畢業之後<br>
             希望可以像直線的光一樣不會終斷我們的connection
         </div>
@@ -448,7 +453,7 @@
             allChars.forEach((char, index) => {
                 setTimeout(() => {
                     char.classList.add('animate');
-                }, index * 30); // 稍微加快字體彈跳速度
+                }, index * 60); // 把這裡的數字從 30 改為 60，字體出現的速度就會變慢了！
             });
         }
 
@@ -472,14 +477,17 @@
             }
         });
 
-        // 2. 獲取相機與麥克風權限
+        // 2. 獲取相機與麥克風權限 (增加防回音參數)
         async function startCamera() {
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
             const constraints = {
                 video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
-                audio: true // 請求麥克風
+                audio: { 
+                    echoCancellation: true,  // 強制開啟麥克風防回音
+                    noiseSuppression: true   // 開啟降噪
+                }
             };
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia(constraints);
