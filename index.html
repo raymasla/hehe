@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全螢幕網頁相機 - 質感升級版</title>
+    <title>全螢幕網頁相機 - 驚喜特製版</title>
     <style>
         /* 重置基本樣式，隱藏滾動條 */
         body, html {
@@ -40,21 +40,7 @@
             line-height: 1.5;
         }
 
-        /* 頂部橫線指示器 (仿系統 UI) */
-        #top-indicator {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 36px;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 2px;
-            z-index: 10;
-            display: none;
-        }
-
-        /* 相機預覽影片 (佔據上半部，留出底部控制列空間) */
+        /* 相機預覽影片 */
         #camera-preview {
             position: absolute;
             top: 0;
@@ -84,61 +70,6 @@
             transition: none;
         }
 
-        /* 懸浮在畫面上的控制項 */
-        #overlay-controls {
-            position: absolute;
-            bottom: 165px;
-            left: 0;
-            width: 100%;
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 25px;
-            box-sizing: border-box;
-            z-index: 10;
-        }
-
-        .side-icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.4);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-        }
-
-        .zoom-slider {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .zoom-slider .dot {
-            width: 4px;
-            height: 4px;
-            background-color: white;
-            border-radius: 50%;
-            opacity: 0.8;
-        }
-
-        .zoom-slider .zoom-level {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            background-color: rgba(0, 0, 0, 0.4);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 13px;
-            font-weight: 500;
-            backdrop-filter: blur(4px);
-        }
-
         /* 底部黑色操作面板 */
         #bottom-bar {
             position: absolute;
@@ -166,18 +97,14 @@
 
         .mode-selector span {
             opacity: 0.7;
-            cursor: pointer;
             padding-bottom: 6px;
-            white-space: nowrap;
         }
-
         .mode-selector span.active {
             opacity: 1;
             color: #f6c344;
             font-weight: 600;
             position: relative;
         }
-
         .mode-selector span.active::after {
             content: '';
             position: absolute;
@@ -187,7 +114,6 @@
             width: 16px;
             height: 2px;
             background-color: #f6c344;
-            border-radius: 1px;
         }
 
         /* 主要按鈕列 */
@@ -199,29 +125,17 @@
             padding-bottom: 10px;
         }
 
-        /* 左側相簿縮圖 */
         .gallery-thumb {
             width: 46px;
             height: 46px;
             border-radius: 50%;
             background-color: #222;
-            border: none;
             background-size: cover;
             background-position: center;
-            cursor: pointer;
             position: relative;
-            overflow: hidden;
         }
 
-        .gallery-thumb::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #444, #222);
-            z-index: -1;
-        }
-
-        /* 中央拍照快門按鈕 */
+        /* 快門鍵 */
         .shutter-btn {
             width: 76px;
             height: 76px;
@@ -236,7 +150,6 @@
             align-items: center;
             transition: transform 0.1s;
         }
-
         .shutter-btn::after {
             content: '';
             width: 60px;
@@ -245,15 +158,8 @@
             background-color: #fff;
             position: absolute;
         }
+        .shutter-btn:active { transform: scale(0.95); }
 
-        .shutter-btn:active {
-            transform: scale(0.95);
-        }
-        .shutter-btn:active::after {
-            background-color: #ddd;
-        }
-
-        /* 右側切換鏡頭按鈕 */
         .switch-btn {
             width: 46px;
             height: 46px;
@@ -263,84 +169,118 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
         }
 
-        .switch-btn:active {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-        /* --- 驚喜卡片樣式設計 --- */
-        #message-modal {
-            position: fixed;
+        /* ================= 星空粒子與卡片樣式 ================= */
+        #canvas {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            z-index: 200;
-            display: none; /* 預設隱藏 */
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.5s ease;
+            z-index: 60; /* 顯示在相機上方 */
+            display: none; /* 初始隱藏 */
+            background-color: #1a1a2e;
         }
 
-        #message-modal.show {
-            display: flex;
-            opacity: 1;
-        }
-
-        .card {
-            background-color: #fff;
-            width: 85%;
-            max-width: 400px;
-            border-radius: 20px;
-            padding: 30px 25px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        .card-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0) rotate(-5deg);
+            z-index: 70;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85%;
+            overflow-y: auto;
+            background: linear-gradient(135deg, rgba(255, 248, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+            border-radius: 30px;
+            padding: 35px 30px 60px 30px;
+            box-shadow: 0 20px 50px rgba(255, 159, 243, 0.3), 0 0 30px rgba(255, 255, 255, 0.6);
+            border: 5px dashed #ffb8b8;
             text-align: center;
-            position: relative;
-            animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        .card-container.show {
+            display: block;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            opacity: 1;
+            pointer-events: auto;
         }
 
-        @keyframes popUp {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+        /* 果凍彈跳文字 */
+        .jump-char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(30px) scale(0.3) rotate(-15deg);
+            white-space: pre-wrap;
         }
 
-        .card h2 {
-            margin: 0 0 15px 0;
-            color: #333;
-            font-size: 22px;
+        .jump-char.animate {
+            animation: charJellyBounce 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes charJellyBounce {
+            0% { opacity: 0; transform: translateY(30px) scale(0.3) rotate(-20deg); }
+            50% { opacity: 1; transform: translateY(-15px) scale(1.2) rotate(10deg); }
+            75% { transform: translateY(5px) scale(0.9) rotate(-5deg); }
+            100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+        }
+
+        .card-title {
+            color: #ff6b81;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            border-bottom: 3px dotted #7bed9f;
+            padding-bottom: 10px;
             letter-spacing: 2px;
         }
-
-        .card p {
-            color: #555;
-            font-size: 15px;
-            line-height: 1.8;
+        
+        .card-content {
+            color: #2f3542;
+            font-size: 16px;
+            line-height: 2.2;
             text-align: left;
-            margin: 0;
+            font-weight: 700;
+        }
+
+        /* 悄悄話小字樣式 */
+        .whisper-text {
+            font-size: 12px;
+            color: #ff7675;
+            font-weight: 500;
             letter-spacing: 0.5px;
         }
 
-        .close-card-btn {
-            margin-top: 25px;
-            background-color: #f6c344;
-            color: #333;
+        /* 隱藏/小小的了解按鈕 */
+        .understand-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background-color: #7bed9f;
+            color: #2f3542;
             border: none;
-            padding: 10px 25px;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 900;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
             cursor: pointer;
-            transition: transform 0.2s;
+            z-index: 20;
+            outline: none;
         }
 
-        .close-card-btn:active {
-            transform: scale(0.95);
+        .understand-btn:active {
+            transform: scale(0.9) rotate(-3deg);
+            background-color: #2ed573;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -350,44 +290,12 @@
         點擊畫面任意處<br>開啟相機並允許麥克風權限
     </div>
 
-    <div id="top-indicator"></div>
-
     <video id="camera-preview" autoplay playsinline></video>
-    
     <div id="flash"></div>
-
-    <div id="overlay-controls">
-        <div class="side-icon-btn" id="lens-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 8V5h3M19 8V5h-3M5 16v3h3M19 16v3h-3"/>
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M16 16l-1.5-1.5"/>
-            </svg>
-        </div>
-        <div class="zoom-slider">
-            <span class="dot"></span>
-            <span class="zoom-level">1X</span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-        </div>
-        <div class="side-icon-btn" id="beauty-btn">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"/>
-                <path d="M9 10h.01M15 10h.01"/>
-                <path d="M10 15c.5 1 1.5 1 2 1s1.5 0 2-1"/>
-                <path d="M19 4l1-1 1 1-1 1z"/>
-            </svg>
-        </div>
-    </div>
 
     <div id="bottom-bar">
         <div class="mode-selector">
-            <span>夜景</span>
-            <span>錄影</span>
-            <span class="active">拍照</span>
-            <span>人像</span>
-            <span>48M</span>
-            <span>更多</span>
+            <span>夜景</span><span>錄影</span><span class="active">拍照</span><span>人像</span><span>48M</span>
         </div>
         <div class="action-row">
             <div id="gallery-thumb" class="gallery-thumb"></div>
@@ -404,148 +312,261 @@
         </div>
     </div>
 
-    <div id="message-modal">
-        <div class="card">
-            <h2>dear羽</h2>
-            <p>
-                雖然我們國一國二還沒講過太多話<br>
-                但到了國三 某次奇妙把我的位子排在妳的旁邊<br>
-                剛好也有晚修班 我就跟妳聊了起來<br>
-                謝謝妳在我難過的時候關心我<br>
-                在我有問題的時候教我<br>
-                在我無聊的時候跟我玩<br>
-                還有常常打電話到很晚🙃<br>
-                感謝有妳 讓我的國三變得更愉快<br>
-                雖然妳總是有點調皮<br>
-                但能在妳旁邊的時光 我過得很開心<br>
-                即使畢業之後<br>
-                希望可以像直線的光一樣不會終斷我們的connection
-            </p>
-            <button class="close-card-btn" id="close-modal-btn">知道啦！</button>
+    <canvas id="canvas"></canvas>
+
+    <div class="card-container" id="card">
+        <div class="card-title" id="anim-title">dear羽</div>
+        <div class="card-content" id="anim-body">
+            雖然我們國一國二還沒講過太多話<br>
+            但到了國三 某次奇妙把我的位子排在妳的旁邊<br>
+            剛好也有晚修班 我就跟妳聊了起來<br>
+            謝謝妳在我難過的時候關心我<br>
+            在我有問題的時候教我<br>
+            在我無聊的時候跟我玩<br>
+            還有常常打電話到很晚🙃<br>
+            感謝有妳 讓我的國三變得更愉快<br>
+            剛剛那些話你應該都看過了<br>
+            下面可能才是新的<br>
+            雖然妳總是有點調皮<br>
+            但能在妳旁邊的時光 我過得很開心<br>
+            <small class="whisper-text">其實我很享受跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
+            即使畢業之後<br>
+            希望可以像直線的光一樣不會終斷我們的connection
         </div>
+        <button class="understand-btn" id="understand-btn">了解</button>
     </div>
 
     <script>
         const startOverlay = document.getElementById('start-overlay');
         const cameraPreview = document.getElementById('camera-preview');
-        const overlayControls = document.getElementById('overlay-controls');
         const bottomBar = document.getElementById('bottom-bar');
-        const topIndicator = document.getElementById('top-indicator');
         const flash = document.getElementById('flash');
-        const messageModal = document.getElementById('message-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        
         const captureBtn = document.getElementById('capture-btn');
         const switchBtn = document.getElementById('switch-btn');
-        const galleryThumb = document.getElementById('gallery-thumb');
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cardContainer = document.getElementById('card');
+        const understandBtn = document.getElementById('understand-btn');
 
         let videoStream = null;
-        let currentFacingMode = 'environment'; // 預設使用後置鏡頭
+        let currentFacingMode = 'environment'; 
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let secretClickCount = 0; // 計算「了解」按鈕點擊次數
 
-        // 1. 點擊畫面任意處進入全螢幕並啟動相機 (包含麥克風)
+        // --- 星空粒子系統 ---
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        const particles = [];
+        let isAnimating = false;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.radius = Math.random() * 3 + 1.5;
+                this.hue = Math.random() * 360;
+                this.color = `hsl(${this.hue}, 100%, 75%)`;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.hue = (this.hue + 1) % 360;
+                this.color = `hsl(${this.hue}, 100%, 75%)`;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function animate() {
+            if (!isAnimating) return;
+            ctx.fillStyle = 'rgba(26, 26, 46, 0.2)'; 
+            ctx.fillRect(0, 0, width, height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 * (1 - dist / 100)})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // --- 文字逐字彈跳處理 ---
+        function wrapText(element) {
+            const nodes = Array.from(element.childNodes);
+            nodes.forEach(node => {
+                if (node.nodeType === 3) {
+                    const text = node.nodeValue;
+                    if (!text.trim() && !text.includes(' ')) return;
+                    
+                    const chars = [...text];
+                    const fragment = document.createDocumentFragment();
+                    chars.forEach(char => {
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.className = 'jump-char';
+                        fragment.appendChild(span);
+                    });
+                    element.replaceChild(fragment, node);
+                } else if (node.nodeType === 1 && node.tagName !== 'BR') {
+                    wrapText(node);
+                }
+            });
+        }
+
+        function startJumpAnimation() {
+            const allChars = document.querySelectorAll('.jump-char');
+            allChars.forEach((char, index) => {
+                setTimeout(() => {
+                    char.classList.add('animate');
+                }, index * 30); // 稍微加快字體彈跳速度
+            });
+        }
+
+        // 初始化包裹文字
+        wrapText(document.getElementById('anim-title'));
+        wrapText(document.getElementById('anim-body'));
+
+
+        // 1. 啟動全螢幕與相機
         startOverlay.addEventListener('click', async () => {
             try {
                 if (!document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
                 }
-                
                 startOverlay.style.display = 'none';
-                topIndicator.style.display = 'block';
                 cameraPreview.style.display = 'block';
-                overlayControls.style.display = 'flex';
                 bottomBar.style.display = 'flex';
-
                 startCamera();
             } catch (err) {
                 alert(`無法進入全螢幕或開啟相機: ${err.message}`);
             }
         });
 
-        // 2. 啟動相機與麥克風功能
+        // 2. 獲取相機與麥克風權限
         async function startCamera() {
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
-
-            // 在此處將 audio 設為 true，網頁就會詢問麥克風權限
             const constraints = {
-                video: {
-                    facingMode: currentFacingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: true 
+                video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                audio: true // 請求麥克風
             };
-
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia(constraints);
                 cameraPreview.srcObject = videoStream;
             } catch (err) {
-                console.error("相機或麥克風存取失敗:", err);
-                alert("無法存取相機或麥克風，請確認您已給予瀏覽器權限。");
+                console.error("權限存取失敗:", err);
+                alert("請給予相機與麥克風權限才能完整體驗喔！");
             }
         }
 
-        // 3. 拍照功能改為：閃光燈 -> 擷取畫面當縮圖 -> 彈出告白卡片
+        // 3. 快門鍵點擊：閃光 -> 關閉畫面 -> 開始錄音 -> 顯示星空與卡片
         captureBtn.addEventListener('click', () => {
             if (!videoStream) return;
 
-            // 觸發閃光燈效果
+            // 閃光效果
             flash.classList.add('active');
+            
+            // 開始背景錄音
+            audioChunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(videoStream);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                mediaRecorder.onstop = () => {
+                    // 下載錄音檔
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const link = document.createElement('a');
+                    link.href = audioUrl;
+                    link.download = `secret_record_${new Date().getTime()}.webm`;
+                    link.click();
+                    
+                    // 關閉麥克風
+                    videoStream.getAudioTracks().forEach(track => track.stop());
+                };
+                mediaRecorder.start();
+            } catch (err) {
+                console.log("錄音啟動失敗", err);
+            }
+
             setTimeout(() => {
                 flash.classList.remove('active');
-            }, 60);
+                
+                // 關閉相機畫面與鏡頭指示燈 (僅停止影像軌，保留聲音軌繼續錄)
+                videoStream.getVideoTracks().forEach(track => track.stop());
+                cameraPreview.style.display = 'none';
+                bottomBar.style.display = 'none';
 
-            // 偷偷擷取一張畫面放到左下角縮圖，讓操作看起來很逼真
-            const canvas = document.createElement('canvas');
-            canvas.width = cameraPreview.videoWidth;
-            canvas.height = cameraPreview.videoHeight;
-            const ctx = canvas.getContext('2d');
-            
-            if (currentFacingMode === 'user') {
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-            }
-            ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/png');
-            galleryThumb.style.backgroundImage = `url(${imageData})`;
+                // 啟動星空背景
+                canvas.style.display = 'block';
+                isAnimating = true;
+                for (let i = 0; i < 60; i++) {
+                    particles.push(new Particle());
+                }
+                animate();
 
-            // 延遲一點點時間彈出卡片（讓閃光燈效果先跑完）
-            setTimeout(() => {
-                messageModal.classList.add('show');
-            }, 300);
+                // 顯示生動卡片
+                cardContainer.classList.add('show');
+                setTimeout(startJumpAnimation, 600); // 等待卡片彈出後開始文字彈跳
+
+            }, 100);
         });
 
-        // 關閉卡片按鈕
-        closeModalBtn.addEventListener('click', () => {
-            messageModal.classList.remove('show');
-            // 等待過渡動畫結束後隱藏
-            setTimeout(() => {
-                messageModal.style.display = 'none';
-                messageModal.style.display = ''; // 恢復 CSS 控制
-            }, 500);
-        });
-
-        // 4. 切換鏡頭功能
+        // 4. 切換鏡頭
         switchBtn.addEventListener('click', () => {
             currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
             startCamera(); 
         });
 
-        // 5. 監聽退出全螢幕事件
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && startOverlay.style.display === 'none') {
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
+        // 5. 隱藏機關：連點 10 次「了解」按鈕停止並下載錄音
+        understandBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 防止觸發其他事件
+            secretClickCount++;
+            
+            // 點擊回饋 (稍微縮放)
+            understandBtn.style.transform = 'scale(0.8)';
+            setTimeout(() => understandBtn.style.transform = 'scale(1)', 100);
+
+            if (secretClickCount >= 10) {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop(); // 觸發 onstop，進行下載
                 }
-                startOverlay.style.display = 'flex';
-                topIndicator.style.display = 'none';
-                cameraPreview.style.display = 'none';
-                overlayControls.style.display = 'none';
-                bottomBar.style.display = 'none';
-                messageModal.classList.remove('show');
+                secretClickCount = 0; // 重置
             }
         });
+
     </script>
 </body>
 </html>
