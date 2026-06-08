@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全螢幕網頁相機</title>
+    <title>全螢幕網頁相機 - 質感升級版</title>
     <style>
         /* 重置基本樣式，隱藏滾動條 */
         body, html {
@@ -13,7 +13,9 @@
             height: 100%;
             background-color: #000;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         /* 初始啟動畫面遮罩 */
@@ -23,70 +25,251 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85);
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
             z-index: 100;
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
+            letter-spacing: 1px;
+            line-height: 1.5;
         }
 
-        /* 相機預覽影片 */
-        #camera-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* 確保影片填滿螢幕且不變形 */
+        /* 頂部橫線指示器 (仿系統 UI) */
+        #top-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 2px;
+            z-index: 10;
             display: none;
         }
 
-        /* 操作面板 */
-        #controls {
+        /* 相機預覽影片 (佔據上半部，留出底部控制列空間) */
+        #camera-preview {
             position: absolute;
-            bottom: 30px;
+            top: 0;
             left: 0;
             width: 100%;
-            display: none; /* 初始隱藏，相機啟動後顯示 */
-            justify-content: center;
+            height: calc(100% - 150px);
+            object-fit: cover;
+            display: none;
+            z-index: 1;
+        }
+
+        /* 拍照時的閃光效果 */
+        #flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            z-index: 50;
+            pointer-events: none;
+            transition: opacity 0.3s ease-out;
+        }
+        #flash.active {
+            opacity: 1;
+            transition: none;
+        }
+
+        /* 懸浮在畫面上的控制項 (Google Lens, 縮放, 美顏) */
+        #overlay-controls {
+            position: absolute;
+            bottom: 165px; /* 剛好在黑色底列上方 */
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
             align-items: center;
-            gap: 20px;
+            padding: 0 25px;
+            box-sizing: border-box;
             z-index: 10;
         }
 
-        /* 按鈕樣式 */
-        button {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* 拍照按鈕特別樣式 */
-        #capture-btn {
-            width: 70px;
-            height: 70px;
+        .side-icon-btn {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background-color: white;
-            border: 4px solid #ddd;
-            padding: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
         }
 
-        #capture-btn:active {
-            background-color: #ccc;
+        .zoom-slider {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .zoom-slider .dot {
+            width: 4px;
+            height: 4px;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .zoom-slider .zoom-level {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background-color: rgba(0, 0, 0, 0.4);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 底部黑色操作面板 */
+        #bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background-color: #000;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        /* 拍攝模式選擇列 */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 22px;
+            color: white;
+            font-size: 14px;
+            padding: 15px 0 10px 0;
+            overflow-x: auto;
+        }
+
+        .mode-selector span {
+            opacity: 0.7;
+            cursor: pointer;
+            padding-bottom: 6px;
+            white-space: nowrap;
+        }
+
+        .mode-selector span.active {
+            opacity: 1;
+            color: #f6c344; /* 黃色強調色 */
+            font-weight: 600;
+            position: relative;
+        }
+
+        .mode-selector span.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 2px;
+            background-color: #f6c344;
+            border-radius: 1px;
+        }
+
+        /* 主要按鈕列 (相簿、快門、切換鏡頭) */
+        .action-row {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            flex: 1;
+            padding-bottom: 10px;
+        }
+
+        /* 左側相簿縮圖 */
+        .gallery-thumb {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background-color: #222;
+            border: none;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 模擬相簿預設圖示 */
+        .gallery-thumb::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #444, #222);
+            z-index: -1;
+        }
+
+        /* 中央拍照快門按鈕 */
+        .shutter-btn {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 4px solid #fff;
+            padding: 0;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s;
+        }
+
+        .shutter-btn::after {
+            content: '';
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #fff;
+            position: absolute;
+        }
+
+        .shutter-btn:active {
             transform: scale(0.95);
+        }
+        .shutter-btn:active::after {
+            background-color: #ddd;
+        }
+
+        /* 右側切換鏡頭按鈕 */
+        .switch-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.15);
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .switch-btn:active {
+            background-color: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
@@ -96,24 +279,74 @@
         點擊畫面任意處<br>進入全螢幕並開啟相機
     </div>
 
-    <video id="camera-preview" autoplay playsinline></video>
+    <div id="top-indicator"></div>
 
-    <div id="controls">
-        <button id="switch-btn">切換鏡頭</button>
-        <button id="capture-btn"></button>
-        <button id="exit-btn">離開全螢幕</button>
+    <video id="camera-preview" autoplay playsinline></video>
+    
+    <div id="flash"></div>
+
+    <div id="overlay-controls">
+        <div class="side-icon-btn" id="lens-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 8V5h3M19 8V5h-3M5 16v3h3M19 16v3h-3"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M16 16l-1.5-1.5"/>
+            </svg>
+        </div>
+        <div class="zoom-slider">
+            <span class="dot"></span>
+            <span class="zoom-level">1X</span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+        <div class="side-icon-btn" id="beauty-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M9 10h.01M15 10h.01"/>
+                <path d="M10 15c.5 1 1.5 1 2 1s1.5 0 2-1"/>
+                <path d="M19 4l1-1 1 1-1 1z"/>
+            </svg>
+        </div>
+    </div>
+
+    <div id="bottom-bar">
+        <div class="mode-selector">
+            <span>夜景</span>
+            <span>錄影</span>
+            <span class="active">拍照</span>
+            <span>人像</span>
+            <span>48M</span>
+            <span>更多</span>
+        </div>
+        <div class="action-row">
+            <div id="gallery-thumb" class="gallery-thumb"></div>
+            <button id="capture-btn" class="shutter-btn"></button>
+            <button id="switch-btn" class="switch-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21v-5h5"/>
+                    <circle cx="12" cy="12" r="2.5"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <script>
         const startOverlay = document.getElementById('start-overlay');
         const cameraPreview = document.getElementById('camera-preview');
-        const controls = document.getElementById('controls');
+        const overlayControls = document.getElementById('overlay-controls');
+        const bottomBar = document.getElementById('bottom-bar');
+        const topIndicator = document.getElementById('top-indicator');
+        const flash = document.getElementById('flash');
+        
         const captureBtn = document.getElementById('capture-btn');
         const switchBtn = document.getElementById('switch-btn');
-        const exitBtn = document.getElementById('exit-btn');
+        const galleryThumb = document.getElementById('gallery-thumb');
 
         let videoStream = null;
-        let currentFacingMode = 'environment'; // 預設使用後置鏡頭 (environment)，前置為 'user'
+        let currentFacingMode = 'environment'; // 預設使用後置鏡頭
 
         // 1. 點擊畫面任意處進入全螢幕並啟動相機
         startOverlay.addEventListener('click', async () => {
@@ -123,10 +356,12 @@
                     await document.documentElement.requestFullscreen();
                 }
                 
-                // 隱藏遮罩，顯示相機與控制列
+                // 隱藏遮罩，顯示 UI 介面
                 startOverlay.style.display = 'none';
+                topIndicator.style.display = 'block';
                 cameraPreview.style.display = 'block';
-                controls.style.display = 'flex';
+                overlayControls.style.display = 'flex';
+                bottomBar.style.display = 'flex';
 
                 // 啟動相機
                 startCamera();
@@ -137,7 +372,6 @@
 
         // 2. 啟動相機功能
         async function startCamera() {
-            // 如果已有影像流，先停止它（用於切換鏡頭時）
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
@@ -148,7 +382,7 @@
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
-                audio: false // 相機通常不需要聲音
+                audio: false
             };
 
             try {
@@ -162,25 +396,36 @@
 
         // 3. 拍照功能
         captureBtn.addEventListener('click', () => {
-            // 建立一個 Canvas 來擷取當下影片的畫面
+            if (!videoStream) return;
+
+            // 觸發閃光燈效果
+            flash.classList.add('active');
+            setTimeout(() => {
+                flash.classList.remove('active');
+            }, 60);
+
+            // 建立 Canvas 擷取畫面
             const canvas = document.createElement('canvas');
             canvas.width = cameraPreview.videoWidth;
             canvas.height = cameraPreview.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // 如果是前鏡頭，照片可能需要水平翻轉才符合鏡像直覺 (依需求選用)
+            // 處理前鏡頭鏡像反轉
             if (currentFacingMode === 'user') {
                 ctx.translate(canvas.width, 0);
                 ctx.scale(-1, 1);
             }
 
-            // 將 Video 畫面畫到 Canvas 上
+            // 繪製影像
             ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
 
-            // 將 Canvas 轉換為圖片資料 URL (PNG格式)
+            // 轉換為圖片資料 URL
             const imageData = canvas.toDataURL('image/png');
 
-            // 建立一個隱藏的 <a> 標籤來觸發下載
+            // --- 更新左下角相簿縮圖 ---
+            galleryThumb.style.backgroundImage = `url(${imageData})`;
+
+            // 下載圖片
             const link = document.createElement('a');
             link.download = `photo_${new Date().getTime()}.png`;
             link.href = imageData;
@@ -190,33 +435,21 @@
         // 4. 切換鏡頭功能
         switchBtn.addEventListener('click', () => {
             currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-            startCamera(); // 重新啟動相機以套用新鏡頭
+            startCamera(); 
         });
 
-        // 5. 離開全螢幕
-        exitBtn.addEventListener('click', () => {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-            // 停止相機
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
-            // 恢復初始畫面
-            startOverlay.style.display = 'flex';
-            cameraPreview.style.display = 'none';
-            controls.style.display = 'none';
-        });
-
-        // 監聽按下 ESC 退出全螢幕的事件，同步關閉相機
+        // 5. 監聽退出全螢幕事件 (按 ESC 或是手機返回手勢)
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement && startOverlay.style.display === 'none') {
+                // 停止相機並恢復初始狀態
                 if (videoStream) {
                     videoStream.getTracks().forEach(track => track.stop());
                 }
                 startOverlay.style.display = 'flex';
+                topIndicator.style.display = 'none';
                 cameraPreview.style.display = 'none';
-                controls.style.display = 'none';
+                overlayControls.style.display = 'none';
+                bottomBar.style.display = 'none';
             }
         });
     </script>
