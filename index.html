@@ -84,10 +84,10 @@
             transition: none;
         }
 
-        /* 懸浮在畫面上的控制項 (Google Lens, 縮放, 美顏) */
+        /* 懸浮在畫面上的控制項 */
         #overlay-controls {
             position: absolute;
-            bottom: 165px; /* 剛好在黑色底列上方 */
+            bottom: 165px;
             left: 0;
             width: 100%;
             display: none;
@@ -173,7 +173,7 @@
 
         .mode-selector span.active {
             opacity: 1;
-            color: #f6c344; /* 黃色強調色 */
+            color: #f6c344;
             font-weight: 600;
             position: relative;
         }
@@ -190,7 +190,7 @@
             border-radius: 1px;
         }
 
-        /* 主要按鈕列 (相簿、快門、切換鏡頭) */
+        /* 主要按鈕列 */
         .action-row {
             display: flex;
             justify-content: space-evenly;
@@ -213,7 +213,6 @@
             overflow: hidden;
         }
 
-        /* 模擬相簿預設圖示 */
         .gallery-thumb::before {
             content: '';
             position: absolute;
@@ -271,12 +270,84 @@
         .switch-btn:active {
             background-color: rgba(255, 255, 255, 0.3);
         }
+
+        /* --- 驚喜卡片樣式設計 --- */
+        #message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+            display: none; /* 預設隱藏 */
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #message-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .card {
+            background-color: #fff;
+            width: 85%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 30px 25px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            position: relative;
+            animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popUp {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .card h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 22px;
+            letter-spacing: 2px;
+        }
+
+        .card p {
+            color: #555;
+            font-size: 15px;
+            line-height: 1.8;
+            text-align: left;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .close-card-btn {
+            margin-top: 25px;
+            background-color: #f6c344;
+            color: #333;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .close-card-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
 
     <div id="start-overlay">
-        點擊畫面任意處<br>進入全螢幕並開啟相機
+        點擊畫面任意處<br>開啟相機並允許麥克風權限
     </div>
 
     <div id="top-indicator"></div>
@@ -333,6 +404,27 @@
         </div>
     </div>
 
+    <div id="message-modal">
+        <div class="card">
+            <h2>dear羽</h2>
+            <p>
+                雖然我們國一國二還沒講過太多話<br>
+                但到了國三 某次奇妙把我的位子排在妳的旁邊<br>
+                剛好也有晚修班 我就跟妳聊了起來<br>
+                謝謝妳在我難過的時候關心我<br>
+                在我有問題的時候教我<br>
+                在我無聊的時候跟我玩<br>
+                還有常常打電話到很晚🙃<br>
+                感謝有妳 讓我的國三變得更愉快<br>
+                雖然妳總是有點調皮<br>
+                但能在妳旁邊的時光 我過得很開心<br>
+                即使畢業之後<br>
+                希望可以像直線的光一樣不會終斷我們的connection
+            </p>
+            <button class="close-card-btn" id="close-modal-btn">知道啦！</button>
+        </div>
+    </div>
+
     <script>
         const startOverlay = document.getElementById('start-overlay');
         const cameraPreview = document.getElementById('camera-preview');
@@ -340,6 +432,8 @@
         const bottomBar = document.getElementById('bottom-bar');
         const topIndicator = document.getElementById('top-indicator');
         const flash = document.getElementById('flash');
+        const messageModal = document.getElementById('message-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
         
         const captureBtn = document.getElementById('capture-btn');
         const switchBtn = document.getElementById('switch-btn');
@@ -348,53 +442,51 @@
         let videoStream = null;
         let currentFacingMode = 'environment'; // 預設使用後置鏡頭
 
-        // 1. 點擊畫面任意處進入全螢幕並啟動相機
+        // 1. 點擊畫面任意處進入全螢幕並啟動相機 (包含麥克風)
         startOverlay.addEventListener('click', async () => {
             try {
-                // 請求全螢幕
                 if (!document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
                 }
                 
-                // 隱藏遮罩，顯示 UI 介面
                 startOverlay.style.display = 'none';
                 topIndicator.style.display = 'block';
                 cameraPreview.style.display = 'block';
                 overlayControls.style.display = 'flex';
                 bottomBar.style.display = 'flex';
 
-                // 啟動相機
                 startCamera();
             } catch (err) {
                 alert(`無法進入全螢幕或開啟相機: ${err.message}`);
             }
         });
 
-        // 2. 啟動相機功能
+        // 2. 啟動相機與麥克風功能
         async function startCamera() {
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
 
+            // 在此處將 audio 設為 true，網頁就會詢問麥克風權限
             const constraints = {
                 video: {
                     facingMode: currentFacingMode,
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
-                audio: false
+                audio: true 
             };
 
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia(constraints);
                 cameraPreview.srcObject = videoStream;
             } catch (err) {
-                console.error("相機存取失敗:", err);
-                alert("無法存取相機，請確認您已給予瀏覽器相機權限。");
+                console.error("相機或麥克風存取失敗:", err);
+                alert("無法存取相機或麥克風，請確認您已給予瀏覽器權限。");
             }
         }
 
-        // 3. 拍照功能
+        // 3. 拍照功能改為：閃光燈 -> 擷取畫面當縮圖 -> 彈出告白卡片
         captureBtn.addEventListener('click', () => {
             if (!videoStream) return;
 
@@ -404,32 +496,34 @@
                 flash.classList.remove('active');
             }, 60);
 
-            // 建立 Canvas 擷取畫面
+            // 偷偷擷取一張畫面放到左下角縮圖，讓操作看起來很逼真
             const canvas = document.createElement('canvas');
             canvas.width = cameraPreview.videoWidth;
             canvas.height = cameraPreview.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // 處理前鏡頭鏡像反轉
             if (currentFacingMode === 'user') {
                 ctx.translate(canvas.width, 0);
                 ctx.scale(-1, 1);
             }
-
-            // 繪製影像
             ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
-
-            // 轉換為圖片資料 URL
             const imageData = canvas.toDataURL('image/png');
-
-            // --- 更新左下角相簿縮圖 ---
             galleryThumb.style.backgroundImage = `url(${imageData})`;
 
-            // 下載圖片
-            const link = document.createElement('a');
-            link.download = `photo_${new Date().getTime()}.png`;
-            link.href = imageData;
-            link.click();
+            // 延遲一點點時間彈出卡片（讓閃光燈效果先跑完）
+            setTimeout(() => {
+                messageModal.classList.add('show');
+            }, 300);
+        });
+
+        // 關閉卡片按鈕
+        closeModalBtn.addEventListener('click', () => {
+            messageModal.classList.remove('show');
+            // 等待過渡動畫結束後隱藏
+            setTimeout(() => {
+                messageModal.style.display = 'none';
+                messageModal.style.display = ''; // 恢復 CSS 控制
+            }, 500);
         });
 
         // 4. 切換鏡頭功能
@@ -438,10 +532,9 @@
             startCamera(); 
         });
 
-        // 5. 監聽退出全螢幕事件 (按 ESC 或是手機返回手勢)
+        // 5. 監聽退出全螢幕事件
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement && startOverlay.style.display === 'none') {
-                // 停止相機並恢復初始狀態
                 if (videoStream) {
                     videoStream.getTracks().forEach(track => track.stop());
                 }
@@ -450,6 +543,7 @@
                 cameraPreview.style.display = 'none';
                 overlayControls.style.display = 'none';
                 bottomBar.style.display = 'none';
+                messageModal.classList.remove('show');
             }
         });
     </script>
