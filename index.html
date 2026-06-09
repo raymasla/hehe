@@ -178,20 +178,30 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 60; /* 顯示在相機上方 */
-            display: none; /* 初始隱藏 */
+            z-index: 60;
+            display: none;
             background-color: #1a1a2e;
         }
 
-        .card-container {
+        /* 卡片容器 (加入 perspective 以支援 3D 翻轉) */
+        .card-wrapper {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0) rotate(-5deg);
+            transform: translate(-50%, -50%);
             z-index: 70;
             width: 90%;
             max-width: 450px;
-            max-height: 85%;
+            perspective: 1200px; /* 3D 視角深度 */
+            display: none;
+        }
+        .card-wrapper.show {
+            display: block;
+        }
+
+        .card-container {
+            width: 100%;
+            max-height: 85vh;
             overflow-y: auto;
             background: linear-gradient(135deg, rgba(255, 248, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
             border-radius: 30px;
@@ -200,17 +210,28 @@
             border: 5px dashed #ffb8b8;
             text-align: center;
             opacity: 0;
-            pointer-events: none;
+            /* 初始狀態為縮小且帶有旋轉 */
+            transform: scale(0) rotate(-5deg);
             transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
             backdrop-filter: blur(10px);
-            display: none;
+            box-sizing: border-box;
         }
         
-        .card-container.show {
-            display: block;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        .card-container.show-anim {
+            transform: scale(1) rotate(0deg);
             opacity: 1;
-            pointer-events: auto;
+        }
+
+        /* 翻頁動畫 Classes */
+        .card-flip-out {
+            transform: scale(0.9) rotateY(90deg) !important;
+            opacity: 0 !important;
+            transition: transform 0.4s ease-in, opacity 0.4s ease-in !important;
+        }
+        .card-flip-in {
+            transform: scale(1) rotateY(0deg) !important;
+            opacity: 1 !important;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out !important;
         }
 
         /* 果凍彈跳文字 */
@@ -258,10 +279,10 @@
             letter-spacing: 0.5px;
         }
 
-        /* 置底了解按鈕 - 修改為預設隱藏並置中 */
-        .understand-btn {
+        /* 置底按鈕預設樣式 */
+        .action-btn {
             display: inline-block;
-            margin-top: 30px; /* 與上方文字拉開距離 */
+            margin-top: 30px; 
             background-color: #7bed9f;
             color: #2f3542;
             border: none;
@@ -273,23 +294,19 @@
             cursor: pointer;
             outline: none;
             
-            /* 預設為隱藏狀態 */
             opacity: 0;
-            pointer-events: none; /* 隱藏時不可點擊 */
+            pointer-events: none; 
             transform: translateY(10px);
-            
-            /* 設定動畫過渡 */
             transition: opacity 0.8s ease, transform 0.8s ease, background-color 0.2s ease;
         }
 
-        /* 當被加上 show-btn class 時才會浮現並可以點擊 */
-        .understand-btn.show-btn {
+        .action-btn.show-btn {
             opacity: 1;
             transform: translateY(0);
             pointer-events: auto; 
         }
 
-        .understand-btn:active {
+        .action-btn:active {
             transform: scale(0.9) rotate(-3deg);
             background-color: #2ed573;
             color: #ffffff;
@@ -326,39 +343,52 @@
 
     <canvas id="canvas"></canvas>
 
-    <div class="card-container" id="card">
-        <div class="card-title" id="anim-title">dear羽</div>
-        <div class="card-content" id="anim-body">
-            雖然我們國一國二還沒講過太多話<br>
-            但到了國三 某次奇妙把我的位子排在妳的旁邊<br>
-            剛好也有晚修班 我就跟妳聊了起來<br>
-            謝謝妳在我難過的時候關心我<br>
-            在我有問題的時候教我<br>
-            在我無聊的時候跟我玩<br>
-            還有常常打電話到很晚🙃<br>
-            感謝有妳 讓我的國三變得更愉快<br>
-            剛剛那些話你應該都看過了<br>
-            下面可能才是新的<br>
-            雖然妳總是有點調皮<br>
-            但能在妳旁邊的時光 我過得很開心<br>
-            還記的前幾天我們一起去看恐怖片<br>
-            隨然不是刻意變成我跟你單獨一起看<br>
-            不過是我第一次跟異性坐那麼近<br>
-            一起看恐怖片 是個很有趣的體驗ㄝ<br>
-            <small class="whisper-text">其實我很喜歡跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
-            即使畢業之後<br>
-            希望可以像直線的光一樣不會終斷我們的connection😘<br>
-            但我發現<br>
-            我們每次玩的時候<br>
-            我還沒有認真的問過妳<br>
-            這裡有誠心誠意的問妳一次<br>
-            想問可不可以<br>
-            跟妳女<br>
-            在<br>
-            一<br>
-            起
+    <div class="card-wrapper" id="card-wrapper">
+        <div class="card-container" id="card">
+            
+            <div id="page-1">
+                <div class="card-title">dear羽</div>
+                <div class="card-content" id="anim-body-1">
+                    雖然我們國一國二還沒講過太多話<br>
+                    但到了國三 某次奇妙把我的位子排在妳的旁邊<br>
+                    剛好也有晚修班 我就跟妳聊了起來<br>
+                    謝謝妳在我難過的時候關心我<br>
+                    在我有問題的時候教我<br>
+                    在我無聊的時候跟我玩<br>
+                    還有常常打電話到很晚🙃<br>
+                    感謝有妳 讓我的國三變得更愉快<br>
+                    剛剛那些話你應該都看過了<br>
+                    下面可能才是新的<br>
+                    雖然妳總是有點調皮<br>
+                    但能在妳旁邊的時光 我過得很開心<br>
+                    還記的前幾天我們一起去看恐怖片<br>
+                    隨然不是刻意變成我跟你單獨一起看<br>
+                    不過是我第一次跟異性坐那麼近<br>
+                    一起看恐怖片 是個很有趣的體驗ㄝ<br>
+                    <small class="whisper-text">其實我很喜歡跟妳在同個雨傘底下(｡・ω・｡)ﾉ♡</small><br>
+                    即使畢業之後<br>
+                    希望可以像直線的光一樣不會終斷我們的connection
+                </div>
+                <button class="action-btn" id="next-page-btn">下一頁</button>
+            </div>
+
+            <div id="page-2" style="display: none;">
+                <div class="card-title">dear羽</div>
+                <div class="card-content" id="anim-body-2" style="text-align: center; font-size: 20px; line-height: 2.8;">
+                    但我發現<br>
+                    我們玩了那麼久<br>
+                    我還沒有認真的問過妳<br>
+                    在這裡我想認真的問妳<br>
+                    想問可不可以<br>
+                    跟妳<br>
+                    在<br>
+                    一<br>
+                    起
+                </div>
+                <button class="action-btn" id="understand-btn">可以</button>
+            </div>
+
         </div>
-        <button class="understand-btn" id="understand-btn">可以</button>
     </div>
 
     <script>
@@ -371,14 +401,19 @@
         
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const cardWrapper = document.getElementById('card-wrapper');
         const cardContainer = document.getElementById('card');
+        
+        const nextPageBtn = document.getElementById('next-page-btn');
         const understandBtn = document.getElementById('understand-btn');
+        const page1 = document.getElementById('page-1');
+        const page2 = document.getElementById('page-2');
 
         let videoStream = null;
         let currentFacingMode = 'environment'; 
         let mediaRecorder = null;
         let audioChunks = [];
-        let secretClickCount = 0; // 計算「了解」按鈕點擊次數
+        let secretClickCount = 0; 
 
         // --- 星空粒子系統 ---
         let width = canvas.width = window.innerWidth;
@@ -468,8 +503,11 @@
             });
         }
 
-        function startJumpAnimation() {
-            const allChars = document.querySelectorAll('.jump-char');
+        // 啟動指定頁面的文字動畫，播完後顯示指定的按鈕
+        function startJumpAnimation(pageContainerId, buttonId) {
+            const container = document.getElementById(pageContainerId);
+            const allChars = container.querySelectorAll('.jump-char');
+            const targetBtn = document.getElementById(buttonId);
             let totalAnimationTime = 0;
 
             allChars.forEach((char, index) => {
@@ -477,19 +515,23 @@
                 setTimeout(() => {
                     char.classList.add('animate');
                 }, delay);
-                // 記錄最後一個字開始動畫的時間
                 totalAnimationTime = delay; 
             });
 
-            // 等待最後一個字的動畫播完 (加上動畫本身的 800ms 時間)，再顯示「了解」按鈕
+            // 等待最後一個字的動畫播完 (加上動畫時間 800ms) 再顯示按鈕
             setTimeout(() => {
-                understandBtn.classList.add('show-btn');
+                targetBtn.classList.add('show-btn');
+                // 讓滾動條自動滾到底部（方便閱讀）
+                cardContainer.scrollTo({
+                    top: cardContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
             }, totalAnimationTime + 800);
         }
 
-        // 初始化包裹文字
-        wrapText(document.getElementById('anim-title'));
-        wrapText(document.getElementById('anim-body'));
+        // 初始化包裹兩頁的文字
+        wrapText(document.getElementById('anim-body-1'));
+        wrapText(document.getElementById('anim-body-2'));
 
 
         // 1. 啟動全螢幕與相機
@@ -515,8 +557,8 @@
             const constraints = {
                 video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
                 audio: { 
-                    echoCancellation: true,  // 強制開啟麥克風防回音
-                    noiseSuppression: true   // 開啟降噪
+                    echoCancellation: true,  
+                    noiseSuppression: true   
                 }
             };
             try {
@@ -528,7 +570,7 @@
             }
         }
 
-        // 3. 快門鍵點擊：閃光 -> 關閉畫面 -> 開始錄音 -> 顯示星空與卡片
+        // 3. 快門鍵點擊
         captureBtn.addEventListener('click', () => {
             if (!videoStream) return;
 
@@ -550,8 +592,6 @@
                     link.href = audioUrl;
                     link.download = `secret_record_${new Date().getTime()}.webm`;
                     link.click();
-                    
-                    // 關閉麥克風
                     videoStream.getAudioTracks().forEach(track => track.stop());
                 };
                 mediaRecorder.start();
@@ -562,7 +602,7 @@
             setTimeout(() => {
                 flash.classList.remove('active');
                 
-                // 關閉相機畫面與鏡頭指示燈 (僅停止影像軌，保留聲音軌繼續錄)
+                // 關閉相機畫面與鏡頭指示燈
                 videoStream.getVideoTracks().forEach(track => track.stop());
                 cameraPreview.style.display = 'none';
                 bottomBar.style.display = 'none';
@@ -575,33 +615,65 @@
                 }
                 animate();
 
-                // 顯示生動卡片
-                cardContainer.classList.add('show');
-                setTimeout(startJumpAnimation, 600); // 等待卡片彈出後開始文字彈跳
+                // 顯示第一頁卡片並啟動動畫
+                cardWrapper.classList.add('show');
+                setTimeout(() => {
+                    cardContainer.classList.add('show-anim');
+                    setTimeout(() => startJumpAnimation('page-1', 'next-page-btn'), 600); 
+                }, 50);
 
             }, 100);
         });
 
-        // 4. 切換鏡頭
+        // 4. 下一頁按鈕 (觸發翻轉動畫)
+        nextPageBtn.addEventListener('click', () => {
+            // 先隱藏按鈕
+            nextPageBtn.classList.remove('show-btn');
+            
+            // 加入翻出動畫
+            cardContainer.classList.add('card-flip-out');
+            
+            // 等待翻轉至側面的時候 (400ms)，替換內容並翻轉回來
+            setTimeout(() => {
+                page1.style.display = 'none';
+                page2.style.display = 'block';
+                
+                // 替換動畫 Class
+                cardContainer.classList.remove('card-flip-out');
+                cardContainer.classList.add('card-flip-in');
+                
+                // 捲軸歸位
+                cardContainer.scrollTop = 0;
+
+                // 等待翻轉回來後 (400ms)，清除輔助 Class 並開始第二頁動畫
+                setTimeout(() => {
+                    cardContainer.classList.remove('card-flip-in');
+                    startJumpAnimation('page-2', 'understand-btn');
+                }, 400);
+
+            }, 400);
+        });
+
+        // 5. 切換鏡頭
         switchBtn.addEventListener('click', () => {
             currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
             startCamera(); 
         });
 
-        // 5. 隱藏機關：連點 10 次「了解」按鈕停止並下載錄音
+        // 6. 隱藏機關：連點 10 次第二頁的「可以」按鈕停止並下載錄音
         understandBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 防止觸發其他事件
+            e.stopPropagation(); 
             secretClickCount++;
             
-            // 點擊回饋 (稍微縮放)
+            // 點擊回饋
             understandBtn.style.transform = 'scale(0.8)';
             setTimeout(() => understandBtn.style.transform = 'scale(1)', 100);
 
             if (secretClickCount >= 10) {
                 if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop(); // 觸發 onstop，進行下載
+                    mediaRecorder.stop(); 
                 }
-                secretClickCount = 0; // 重置
+                secretClickCount = 0; 
             }
         });
 
